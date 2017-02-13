@@ -123,7 +123,7 @@ def combineGradientColor(Img):
     result[(combGradMagDirWYmask(rgbImg) == 1) | (hlsImg == 1) ] = 1
     return result
 
-def onScrnCurvatureMeasrs(Img, left_curverad, right_curverad, dst_from_center):
+def onScrnCurvatureMeasrs(Img, left_curverad, right_curverad, dst_frm_center):
     CLR = (255,255,255)
     ## Print left & right Radius on each sides of the Image
     cv2.putText(Img, 'Left Radius', ( 50, 600), fontFace=5, fontScale=1.5, color=CLR, thickness=2)
@@ -134,19 +134,11 @@ def onScrnCurvatureMeasrs(Img, left_curverad, right_curverad, dst_from_center):
                 fontFace=5, fontScale=1.5, color=CLR, thickness=2)
     # Print distance from center on top center of the Image
     cv2.putText(Img, 'CenterOffSet', (530, 100), fontFace=5, fontScale=1.5, color=CLR, thickness=2)
-    cv2.putText(Img, '{0:.2f}m'.format(dst_from_center), (560, 160), 
+    cv2.putText(Img, '{0:.2f}m'.format(dst_frm_center), (560, 160), 
                 fontFace = 5, fontScale = 2, color=CLR, thickness = 2)
     return Img
 
 def getPolynomialsCurve(Img, dbg=0):
-    histgrm = np.sum(Img[int(Img.shape[0]/2):,:], axis=0)
-    midpoint    = np.int(histgrm.shape[0]/2)
-    leftx_base  = np.argmax(histgrm[:midpoint])
-    rightx_base = np.argmax(histgrm[midpoint:]) + midpoint
-    if dbg: 
-        plt.plot(histgrm)
-        plt.show()
-    
     # Id the x & y positions of All nonzero pixels in the image
     nonzero  = Img.nonzero()
     nonzeroy = np.array(nonzero[0])
@@ -203,10 +195,20 @@ def getPolynomialsCurve(Img, dbg=0):
     left_fit = np.polyfit(lefty, leftx, 2)
     right_fit = np.polyfit(righty, rightx, 2)
     
-    ploty = np.linspace(0, Img.shape[0]-1, Img.shape[0] )
-    left_fitx  = left_fit[0]*ploty**2 + left_fit[1]*ploty + left_fit[2]
-    right_fitx = right_fit[0]*ploty**2 + right_fit[1]*ploty + right_fit[2]
-    
+    if dbg:
+        # Generate x and y values for plotting
+        ploty = np.linspace(0, Img.shape[0]-1, Img.shape[0] )
+        left_fitx = left_fit[0]*ploty**2 + left_fit[1]*ploty + left_fit[2]
+        right_fitx = right_fit[0]*ploty**2 + right_fit[1]*ploty + right_fit[2]
+
+        out_img[nonzeroy[left_lane_inds], nonzerox[left_lane_inds]] = [255, 0, 0]
+        out_img[nonzeroy[right_lane_inds], nonzerox[right_lane_inds]] = [0, 0, 255]
+        plt.imshow(out_img)
+        plt.plot(left_fitx, ploty, color='yellow')
+        plt.plot(right_fitx, ploty, color='yellow')
+        plt.xlim(0, 1280)
+        plt.ylim(720, 0)
+        plt.show()
     return left_fit, right_fit
 
 
@@ -284,10 +286,42 @@ def proccessVideo(inClipFnm, outClipFnm='./output_images/outPut.mp4'):
 if __name__ == '__main__':
     #image  = mpimg.imread('signs_vehicles_xygrad.jpg')
     #image  = mpimg.imread('bridge_shadow.jpg')
-    #image  = mpimg.imread('./test_images/straight_lines1.jpg')
     #combin = warp(image)[0]
     #iu.plt2Images(image, combin)
     #iu.plt1Image( processImg( mpimg.imread('./test_images/straight_lines1.jpg'), 1))
     #proccessVideo("./project_video.mp4")
-    #proccessVideo("./challenge_video.mp4",outClipFnm='./output_images/ChallengeOutPut.mp4')
+    #proccessVideo("./challenge_video.mp4", outClipFnm='./output_images/ChallengeOutPut.mp4')
+    #proccessVideo("./harder_challenge_video.mp4", outClipFnm='./output_images/harderChallengeOutPut.mp4')
     xx = processImg( mpimg.imread('./test_images/straight_lines1.jpg'), dbg=1)
+
+    image  = mpimg.imread('./test_images/straight_lines1.jpg')
+    undistImg = iu.undistortImage(image)
+    filtrdImg = combineGradientColor(undistImg)
+    warpedImg, Minv = warp(filtrdImg) #Bird Eye view
+    # Get polynomial coeff fitting the curvature of the lane lines
+    histgrm = np.sum(warpedImg[int(warpedImg.shape[0]/2):,:], axis=0)
+    out_img = out_img = np.dstack((warpedImg, warpedImg, warpedImg))*255
+    
+    midpoint    = np.int(histgrm.shape[0]/2)
+    leftx_base  = np.argmax(histgrm[:midpoint])
+    rightx_base = np.argmax(histgrm[midpoint:]) + midpoint
+
+    histgrm = np.sum(warpedImg[int(warpedImg.shape[0]/2):,:], axis=0)
+    out_img = out_img = np.dstack((warpedImg, warpedImg, warpedImg))*255
+    
+    midpoint    = np.int(histgrm.shape[0]/2)
+    leftx_base  = np.argmax(histgrm[:midpoint])
+    rightx_base = np.argmax(histgrm[midpoint:]) + midpoint
+    
+    left_fit, right_fit = getPolynomialsCurve(warpedImg, dbg=1)
+    # Measure the curvature of the two lines, and get the distance from the center
+    left_curvrad, right_curvrad, dst_from_center = getLineCurvature(warpedImg, left_fit, right_fit, dbg=dbg)
+    iu.plt2Images(warpedImg, )
+    
+    if dbg: print(warpedImg.shape)
+    # Draw the detected lines on the input image
+    ImgWlines = drawLines(undistImg, warpedImg, left_fit, right_fit, Minv)
+    iu.plt1Image(ImgWlines)
+    #if dbg: 
+    # put the Curvature Measures on Screen
+    ImgWlnsLbls = onScrnCurvatureMeasrs(ImgWlines, left_curvrad, right_curvrad, dst_from_center)
