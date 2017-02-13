@@ -1,3 +1,6 @@
+## Please REVIEW using the included file README_writeup.pdf
+as following README.md file is just what came with the project
+
 ## Advanced Lane Finding
 [![Udacity - Self-Driving Car NanoDegree](https://s3.amazonaws.com/udacity-sdc/github/shield-carnd.svg)](http://www.udacity.com/drive)
 
