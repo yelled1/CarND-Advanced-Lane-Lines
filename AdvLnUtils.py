@@ -293,35 +293,3 @@ if __name__ == '__main__':
     #proccessVideo("./challenge_video.mp4", outClipFnm='./output_images/ChallengeOutPut.mp4')
     #proccessVideo("./harder_challenge_video.mp4", outClipFnm='./output_images/harderChallengeOutPut.mp4')
     xx = processImg( mpimg.imread('./test_images/straight_lines1.jpg'), dbg=1)
-
-    image  = mpimg.imread('./test_images/straight_lines1.jpg')
-    undistImg = iu.undistortImage(image)
-    filtrdImg = combineGradientColor(undistImg)
-    warpedImg, Minv = warp(filtrdImg) #Bird Eye view
-    # Get polynomial coeff fitting the curvature of the lane lines
-    histgrm = np.sum(warpedImg[int(warpedImg.shape[0]/2):,:], axis=0)
-    out_img = out_img = np.dstack((warpedImg, warpedImg, warpedImg))*255
-    
-    midpoint    = np.int(histgrm.shape[0]/2)
-    leftx_base  = np.argmax(histgrm[:midpoint])
-    rightx_base = np.argmax(histgrm[midpoint:]) + midpoint
-
-    histgrm = np.sum(warpedImg[int(warpedImg.shape[0]/2):,:], axis=0)
-    out_img = out_img = np.dstack((warpedImg, warpedImg, warpedImg))*255
-    
-    midpoint    = np.int(histgrm.shape[0]/2)
-    leftx_base  = np.argmax(histgrm[:midpoint])
-    rightx_base = np.argmax(histgrm[midpoint:]) + midpoint
-    
-    left_fit, right_fit = getPolynomialsCurve(warpedImg, dbg=1)
-    # Measure the curvature of the two lines, and get the distance from the center
-    left_curvrad, right_curvrad, dst_from_center = getLineCurvature(warpedImg, left_fit, right_fit, dbg=dbg)
-    iu.plt2Images(warpedImg, )
-    
-    if dbg: print(warpedImg.shape)
-    # Draw the detected lines on the input image
-    ImgWlines = drawLines(undistImg, warpedImg, left_fit, right_fit, Minv)
-    iu.plt1Image(ImgWlines)
-    #if dbg: 
-    # put the Curvature Measures on Screen
-    ImgWlnsLbls = onScrnCurvatureMeasrs(ImgWlines, left_curvrad, right_curvrad, dst_from_center)
